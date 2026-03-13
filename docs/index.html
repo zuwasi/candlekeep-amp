@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CandleKeep + Amp — Cross-Standard Compliance Research</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent2: #3fb950;
+            --accent3: #d2a8ff;
+            --accent4: #f0883e;
+            --code-bg: #0d1117;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 80px 0 60px;
+            border-bottom: 1px solid var(--border);
+        }
+        .hero h1 { font-size: 2.8em; margin-bottom: 16px; }
+        .hero h1 span { color: var(--accent); }
+        .hero p { font-size: 1.3em; color: var(--text-muted); max-width: 700px; margin: 0 auto 32px; }
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 0 4px;
+        }
+        .badge-blue { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+        .badge-green { background: rgba(63,185,80,0.15); color: var(--accent2); border: 1px solid rgba(63,185,80,0.3); }
+        .badge-purple { background: rgba(210,168,255,0.15); color: var(--accent3); border: 1px solid rgba(210,168,255,0.3); }
+
+        /* Sections */
+        section { padding: 60px 0; border-bottom: 1px solid var(--border); }
+        section:last-child { border-bottom: none; }
+        h2 { font-size: 2em; margin-bottom: 12px; }
+        h2 span { color: var(--accent); }
+        h3 { font-size: 1.3em; margin-bottom: 8px; color: var(--accent3); }
+        .section-sub { color: var(--text-muted); font-size: 1.1em; margin-bottom: 32px; }
+
+        /* Problem / Solution */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+        @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .card h3 { margin-bottom: 12px; }
+        .card ul { padding-left: 20px; }
+        .card li { margin-bottom: 8px; color: var(--text-muted); }
+        .card-red { border-color: #f85149; }
+        .card-red h3 { color: #f85149; }
+        .card-green { border-color: var(--accent2); }
+        .card-green h3 { color: var(--accent2); }
+
+        /* Flow diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 32px 0;
+            flex-wrap: wrap;
+        }
+        .flow-step {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .flow-step .icon { font-size: 2em; margin-bottom: 8px; }
+        .flow-step .label { font-size: 0.9em; color: var(--text-muted); }
+        .flow-arrow { font-size: 1.5em; color: var(--accent); }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            font-size: 0.95em;
+        }
+        th, td {
+            padding: 10px 14px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+        th { background: var(--surface); color: var(--accent); font-weight: 600; }
+        td { color: var(--text-muted); }
+        tr:hover td { background: rgba(88,166,255,0.05); }
+
+        /* Code */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            overflow-x: auto;
+            font-size: 0.9em;
+            margin: 16px 0;
+        }
+        code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; }
+        .prompt { color: var(--accent2); }
+        .cmd { color: var(--text); }
+        .comment { color: var(--text-muted); }
+
+        /* Steps */
+        .steps { counter-reset: step; margin: 24px 0; }
+        .step {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 24px 24px 72px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 24px;
+            top: 24px;
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            color: var(--bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+        .step h3 { color: var(--text); margin-bottom: 8px; }
+        .step p { color: var(--text-muted); }
+
+        /* CTA */
+        .cta { text-align: center; padding: 60px 0; }
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            margin: 8px;
+        }
+        .btn-primary { background: var(--accent); color: var(--bg); }
+        .btn-primary:hover { background: #79c0ff; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--accent); }
+
+        /* Demo conversation */
+        .chat { margin: 24px 0; }
+        .chat-msg {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            max-width: 85%;
+        }
+        .chat-user {
+            background: rgba(88,166,255,0.12);
+            border: 1px solid rgba(88,166,255,0.2);
+            margin-left: auto;
+            text-align: right;
+        }
+        .chat-user::before { content: "You: "; font-weight: 600; color: var(--accent); }
+        .chat-amp {
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+        .chat-amp::before { content: "Amp: "; font-weight: 600; color: var(--accent2); }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="container">
+        <h1>CandleKeep <span>+</span> Amp</h1>
+        <p>Cross-reference safety standards in seconds. Upload your PDFs, ask questions, get cited answers.</p>
+        <span class="badge badge-blue">MISRA C</span>
+        <span class="badge badge-green">CERT C</span>
+        <span class="badge badge-purple">AUTOSAR</span>
+        <span class="badge badge-blue">CWE</span>
+        <span class="badge badge-green">IEC 62443</span>
+    </div>
+</div>
+
+<!-- Problem / Solution -->
+<section>
+    <div class="container">
+        <h2>The <span>Problem</span></h2>
+        <p class="section-sub">Safety-critical development requires compliance across multiple overlapping standards.</p>
+        <div class="two-col">
+            <div class="card card-red">
+                <h3>❌ Without CandleKeep</h3>
+                <ul>
+                    <li>Manually search 300+ page PDFs for equivalent rules</li>
+                    <li>"Is MISRA Rule 11.3 the same as CERT EXP36-C?" — hours of cross-referencing</li>
+                    <li>No single source of truth across standards</li>
+                    <li>Traceability matrices built by hand in spreadsheets</li>
+                    <li>Knowledge lost between sessions and team members</li>
+                </ul>
+            </div>
+            <div class="card card-green">
+                <h3>✅ With CandleKeep + Amp</h3>
+                <ul>
+                    <li>Upload all standards PDFs once — searchable forever</li>
+                    <li>Ask in plain English, get cited answers in seconds</li>
+                    <li>Automatic cross-reference tables with page citations</li>
+                    <li>Parallel research across 10+ documents simultaneously</li>
+                    <li>Results saved back to library for the whole team</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section>
+    <div class="container">
+        <h2>How It <span>Works</span></h2>
+        <p class="section-sub">Three components, zero code changes needed.</p>
+        <div class="flow">
+            <div class="flow-step">
+                <div class="icon">📄</div>
+                <strong>Your PDFs</strong>
+                <div class="label">MISRA, CERT, AUTOSAR...</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="icon">☁️</div>
+                <strong>CandleKeep Cloud</strong>
+                <div class="label">Indexed & searchable</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="icon">⚡</div>
+                <strong>ck CLI</strong>
+                <div class="label">Read pages, search, cite</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="icon">🤖</div>
+                <strong>Amp Skill</strong>
+                <div class="label">Orchestrates research</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="icon">📊</div>
+                <strong>Cited Results</strong>
+                <div class="label">Tables, analysis, docs</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Live Demo Example -->
+<section>
+    <div class="container">
+        <h2>Real <span>Example</span></h2>
+        <p class="section-sub">This analysis was produced in a single Amp session by uploading MISRA C:2023 and CERT C 2016 PDFs.</p>
+
+        <h3>Conversation</h3>
+        <div class="chat">
+            <div class="chat-msg chat-user">What is the overlap between MISRA C and CERT C?</div>
+            <div class="chat-msg chat-amp">Searching your library... Found 2 documents. Reading MISRA Appendix H and CERT Appendix C in parallel...</div>
+        </div>
+
+        <h3>Output: Cross-Reference Traceability Matrix</h3>
+        <table>
+            <thead>
+                <tr><th>Topic</th><th>MISRA C:2023</th><th>CERT C</th><th>CWE</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Pointer casting / alignment</td><td>Rule 11.3, 11.4</td><td>EXP36-C, INT36-C</td><td>CWE-704</td></tr>
+                <tr><td>Null pointer dereference</td><td>Rule 1.3</td><td>EXP34-C</td><td>CWE-476</td></tr>
+                <tr><td>Uninitialized memory read</td><td>Rule 9.1</td><td>EXP33-C</td><td>CWE-457</td></tr>
+                <tr><td>Signed integer overflow</td><td>Rule 12.4</td><td>INT32-C</td><td>CWE-190</td></tr>
+                <tr><td>Use-after-free</td><td>Rule 18.6, 22.6</td><td>MEM30-C</td><td>CWE-416</td></tr>
+                <tr><td>Buffer overflow (strings)</td><td>Rule 21.17, 21.18</td><td>STR31-C</td><td>CWE-120</td></tr>
+                <tr><td>Data races</td><td>Dir 5.1</td><td>CON32-C, CON33-C</td><td>CWE-362</td></tr>
+                <tr><td>Command injection</td><td>Rule 21.21</td><td>ENV33-C</td><td>CWE-78</td></tr>
+                <tr><td>errno mishandling</td><td>Rule 22.8-22.10</td><td>ERR30-C</td><td>CWE-456</td></tr>
+                <tr><td>Reserved identifiers</td><td>Rule 21.1, 21.2</td><td>DCL37-C</td><td>CWE-733</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Follow-up: Nuanced Scope Comparison</h3>
+        <div class="chat">
+            <div class="chat-msg chat-user">If MISRA Rule 11.3 passes, can I skip CERT EXP36-C?</div>
+            <div class="chat-msg chat-amp">Not exactly. MISRA 11.3 is broader (bans ALL pointer type conversions), but CERT EXP36-C catches void* round-trip alignment issues outside MISRA's scope. Mostly yes, but CERT adds edge cases.</div>
+        </div>
+
+        <h3>Deep Analysis: ISO C Determinism</h3>
+        <div class="chat">
+            <div class="chat-msg chat-user">What issues in ISO C are solved by MISRA C?</div>
+            <div class="chat-msg chat-amp">Reading Appendix G and H... MISRA addresses ISO C problems in three layers:</div>
+        </div>
+        <table>
+            <thead>
+                <tr><th>ISO C Problem</th><th>Count</th><th>MISRA Approach</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Undefined Behaviors</td><td>~203</td><td>Banned outright via specific rules or Rule 1.3 catch-all</td></tr>
+                <tr><td>Unspecified Behaviors (critical)</td><td>~58</td><td>Constrained to be order/choice-independent</td></tr>
+                <tr><td>Implementation-Defined Behaviors</td><td>~100+</td><td>Must document per Dir 1.1</td></tr>
+            </tbody>
+        </table>
+        <p style="color: var(--text-muted); margin-top: 16px;"><em>Every finding above includes document title and page number citations — verified against the actual PDFs in the library.</em></p>
+    </div>
+</section>
+
+<!-- Installation -->
+<section>
+    <div class="container">
+        <h2>Install in <span>2 Minutes</span></h2>
+        <p class="section-sub">Works on Windows, macOS, and Linux.</p>
+
+        <div class="steps">
+            <div class="step">
+                <h3>Download the package</h3>
+                <p>Get the latest release from GitHub:</p>
+                <pre><code><span class="comment"># Download from GitHub Releases page</span>
+<span class="prompt">→</span> <span class="cmd">github.com/zuwasi/candlekeep-amp/releases</span></code></pre>
+            </div>
+            <div class="step">
+                <h3>Run the installer (Windows)</h3>
+                <pre><code><span class="prompt">PS&gt;</span> <span class="cmd">powershell -ExecutionPolicy Bypass -File install.ps1</span></code></pre>
+                <p>Installs <code>ck.exe</code>, sets up the Amp skill, and opens browser for authentication.</p>
+            </div>
+            <div class="step">
+                <h3>Upload your standards</h3>
+                <pre><code><span class="prompt">$</span> <span class="cmd">ck items add MISRA-C-2023.pdf</span>
+<span class="prompt">$</span> <span class="cmd">ck items add CERT-C-2016.pdf</span>
+<span class="prompt">$</span> <span class="cmd">ck items add AUTOSAR-CPP14.pdf</span></code></pre>
+            </div>
+            <div class="step">
+                <h3>Ask questions in Amp</h3>
+                <pre><code><span class="prompt">You:</span> <span class="cmd">"Cross-reference MISRA Rule 11.3 across all my standards"</span>
+<span class="prompt">You:</span> <span class="cmd">"What does my library say about pointer casting?"</span>
+<span class="prompt">You:</span> <span class="cmd">"Which of my standards cover null pointer dereferencing?"</span></code></pre>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 32px;">Manual Installation</h3>
+        <pre><code><span class="comment"># 1. Install ck CLI</span>
+<span class="prompt">$</span> <span class="cmd">cargo install candlekeep-cli</span>   <span class="comment"># or download binary from GitHub Releases</span>
+
+<span class="comment"># 2. Authenticate</span>
+<span class="prompt">$</span> <span class="cmd">ck auth login</span>
+
+<span class="comment"># 3. Copy skill files to Amp skills directory</span>
+<span class="prompt">$</span> <span class="cmd">cp -r skills/candlekeep ~/.agents/skills/candlekeep</span></code></pre>
+    </div>
+</section>
+
+<!-- CTA -->
+<div class="cta">
+    <div class="container">
+        <h2>Get <span>Started</span></h2>
+        <p class="section-sub">Download the package and start cross-referencing your standards today.</p>
+        <a href="https://github.com/zuwasi/candlekeep-amp/releases" class="btn btn-primary">⬇ Download Package</a>
+        <a href="https://github.com/zuwasi/candlekeep-amp" class="btn btn-secondary">📂 View on GitHub</a>
+        <a href="https://getcandlekeep.com" class="btn btn-secondary">☁️ CandleKeep Cloud</a>
+        <a href="https://ampcode.com" class="btn btn-secondary">⚡ Amp</a>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <p>
+            <a href="https://github.com/zuwasi/candlekeep-amp">GitHub</a> ·
+            <a href="https://github.com/CandleKeepAgents/candlekeep-cli">CandleKeep CLI</a> ·
+            <a href="https://github.com/CandleKeepAgents/candlekeep-cli/pull/2">PR #2 — Amp Integration</a> ·
+            <a href="https://ampcode.com">Amp</a>
+        </p>
+        <p style="margin-top: 8px;">Built with CandleKeep + Amp · March 2026</p>
+    </div>
+</footer>
+
+</body>
+</html>
