@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CandleKeep × Amp × Parasoft — Eliminating Non-Deterministic C</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0a0e1a;--surface:#111827;--card:#1a2234;--border:#2a3550;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--cyan:#06b6d4}
+  body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;width:100vw;-webkit-tap-highlight-color:transparent}
+  .slide{display:none;flex-direction:column;align-items:center;height:100vh;width:100vw;padding:40px 48px 58px;position:relative;animation:fadeIn .35s ease;overflow-y:auto}
+  .slide.active{display:flex}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .slide-inner{max-width:1100px;width:100%;flex:1;display:flex;flex-direction:column;justify-content:center}
+  .title-slide .slide-inner{text-align:center;gap:18px}
+  .title-slide h1{font-size:clamp(1.5em,5vw,3em);font-weight:900;background:linear-gradient(135deg,var(--red),var(--amber),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.15}
+  .title-slide .subtitle{font-size:clamp(0.85em,2vw,1.2em);color:var(--muted);font-weight:300;line-height:1.5}
+  .badge-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+  .badge{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 13px;font-size:clamp(0.65em,1.3vw,0.78em);color:var(--muted);font-weight:600;white-space:nowrap}
+  .badge .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  h2{font-size:clamp(1.2em,3.2vw,1.85em);font-weight:700;margin-bottom:4px}
+  h2 .num{color:var(--accent);font-weight:900;margin-right:6px}
+  .slide-subtitle{color:var(--muted);font-size:clamp(0.8em,1.6vw,1em);margin-bottom:20px;font-weight:300;line-height:1.5}
+  .table-wrap{overflow-x:auto;margin:8px 0;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:10px;overflow:hidden;border:1px solid var(--border);min-width:340px}
+  th{background:rgba(59,130,246,.12);color:var(--accent);font-weight:600;text-align:left;padding:10px 12px;font-size:clamp(0.65em,1.2vw,0.78em);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid rgba(42,53,80,.5);font-size:clamp(0.75em,1.4vw,0.85em);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  code{font-family:'JetBrains Mono',monospace;background:rgba(59,130,246,.1);color:var(--cyan);padding:2px 5px;border-radius:4px;font-size:.86em;word-break:break-all}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
+  .card h3{font-size:clamp(0.82em,1.5vw,.95em);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .card p,.card li{color:var(--muted);font-size:clamp(0.75em,1.3vw,.85em);line-height:1.6}
+  .card ul{list-style:none;padding:0}
+  .card ul li{padding:2px 0}
+  .card ul li::before{content:'›';color:var(--accent);font-weight:700;margin-right:7px}
+  .stat-row{display:flex;gap:12px;margin:12px 0;flex-wrap:wrap}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;flex:1;min-width:80px}
+  .stat .number{font-size:clamp(1.4em,3.5vw,2.2em);font-weight:900;line-height:1}
+  .stat .label{font-size:clamp(0.55em,1.1vw,.72em);color:var(--muted);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .comparison{display:flex;align-items:center;justify-content:center;gap:16px;margin:14px 0;flex-wrap:wrap}
+  .comp-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 24px;text-align:center;flex:1;min-width:120px}
+  .comp-box .val{font-size:clamp(1.4em,3.5vw,2em);font-weight:900}
+  .comp-box .desc{color:var(--muted);font-size:clamp(0.68em,1.2vw,.82em);margin-top:3px}
+  .arrow-right{font-size:clamp(1.3em,3.5vw,2.2em);color:var(--green)}
+  .code-block{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:clamp(0.68em,1.2vw,.8em);line-height:1.7;color:#c9d1d9;overflow-x:auto;margin:8px 0;-webkit-overflow-scrolling:touch}
+  .code-block .comment{color:#8b949e}
+  .code-block .cmd{color:#79c0ff}
+  .code-block .str{color:#a5d6ff}
+  .highlight-box{background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08));border:1px solid rgba(59,130,246,.25);border-radius:10px;padding:16px 20px;margin:12px 0;text-align:center;font-size:clamp(0.82em,1.5vw,1em);line-height:1.6}
+  .danger-box{background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(245,158,11,.08));border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:16px 20px;margin:12px 0;font-size:clamp(0.82em,1.5vw,.95em);line-height:1.7}
+  .feature-list{list-style:none;padding:0}
+  .feature-list li{padding:5px 0;font-size:clamp(0.78em,1.4vw,.9em);display:flex;align-items:flex-start;gap:9px;line-height:1.5}
+  .feature-list .icon{flex-shrink:0;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.78em}
+  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.76em;font-weight:700;white-space:nowrap}
+  /* Screenshot frame */
+  .screenshot-frame{background:#0d1117;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:10px 0}
+  .screenshot-frame .frame-bar{background:var(--card);padding:6px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .screenshot-frame .frame-bar .dots{display:flex;gap:5px}
+  .screenshot-frame .frame-bar .dots span{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .screenshot-frame .frame-bar .frame-title{font-size:clamp(0.65em,1.1vw,.75em);color:var(--muted);font-weight:600;font-family:'JetBrains Mono',monospace;margin-left:8px}
+  .screenshot-frame img{width:100%;display:block}
+  .screenshot-frame .frame-caption{padding:10px 14px;font-size:clamp(0.72em,1.3vw,.82em);color:var(--muted);line-height:1.5;border-top:1px solid var(--border)}
+  .screenshot-frame .frame-caption strong{color:var(--text)}
+  /* Flow steps */
+  .flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .flow-step{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;text-align:center;flex:1;min-width:100px}
+  .flow-step .step-num{font-size:clamp(1.2em,2.5vw,1.6em);font-weight:900;line-height:1}
+  .flow-step .step-label{font-size:clamp(0.6em,1vw,.72em);color:var(--muted);margin-top:3px;font-weight:600;text-transform:uppercase}
+  .flow-arrow{color:var(--accent);font-size:clamp(1em,2vw,1.4em);flex-shrink:0}
+  .c-code{background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:clamp(0.7em,1.2vw,.82em);line-height:1.8;margin:8px 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .c-code .kw{color:#ff7b72}.c-code .type{color:#79c0ff}.c-code .fn{color:#d2a8ff}.c-code .str{color:#a5d6ff}.c-code .comment{color:#8b949e}
+  .c-code .bad{background:rgba(239,68,68,.15);display:inline;border-radius:3px;padding:0 3px}
+  /* Bottom bar */
+  .bottom-bar{position:fixed;bottom:0;left:0;right:0;height:50px;background:rgba(10,14,26,.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:100}
+  .bottom-bar .page-info{font-size:clamp(0.65em,1.2vw,.78em);color:var(--muted);font-weight:600;font-family:'JetBrains Mono',monospace}
+  .progress-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--red),var(--amber),var(--accent));transition:width .3s ease;z-index:100}
+  .nav-btn{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;font-size:clamp(0.78em,1.3vw,.85em);font-weight:600;transition:background .2s;-webkit-tap-highlight-color:transparent}
+  .nav-btn:hover,.nav-btn:active{background:var(--border)}
+  .nav-btns{display:flex;gap:5px}
+  .c-red{color:var(--red)}.c-amber{color:var(--amber)}.c-green{color:var(--green)}.c-blue{color:var(--accent)}.c-purple{color:var(--accent2)}.c-cyan{color:var(--cyan)}.c-muted{color:var(--muted)}
+  .bg-red{background:rgba(239,68,68,.15)}.bg-amber{background:rgba(245,158,11,.15)}.bg-green{background:rgba(16,185,129,.15)}.bg-blue{background:rgba(59,130,246,.15)}
+  @media(max-width:768px){.slide{padding:14px 14px 58px;justify-content:flex-start;padding-top:20px}.grid-2,.grid-3{grid-template-columns:1fr}.stat-row{gap:6px}.stat{padding:10px 8px;min-width:65px}.card{padding:12px}.bottom-bar{height:46px;padding:0 8px}.flow{gap:4px}.flow-step{padding:8px 10px;min-width:70px}}
+  @media(max-width:400px){.slide{padding:10px 8px 52px;padding-top:16px}.stat{min-width:45%}}
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<!-- ========== SLIDE 1: TITLE ========== -->
+<div class="slide title-slide active" id="slide-1">
+  <div class="slide-inner">
+    <div style="font-size:clamp(1.8em,5vw,2.8em);margin-bottom:6px">⚠️ 📚 🔧</div>
+    <h1>Eliminating Non-Deterministic C Code</h1>
+    <p class="subtitle">Using <strong>CandleKeep</strong> AI document research + <strong>Parasoft C++test</strong> static analysis to identify and remove undefined, unspecified &amp; implementation-defined behavior from C projects</p>
+    <div class="badge-row">
+      <span class="badge"><span class="dot" style="background:var(--red)"></span>ISO C Annex J</span>
+      <span class="badge"><span class="dot" style="background:var(--amber)"></span>MISRA C:2023</span>
+      <span class="badge"><span class="dot" style="background:var(--accent)"></span>CERT C</span>
+      <span class="badge"><span class="dot" style="background:var(--cyan)"></span>CandleKeep × Amp</span>
+      <span class="badge"><span class="dot" style="background:var(--green)"></span>Parasoft C++test</span>
+    </div>
+    <p style="margin-top:28px;color:var(--muted);font-size:clamp(0.65em,1.2vw,.78em)">Swipe or use ← → to navigate</p>
+  </div>
+</div>
+
+<!-- ========== SLIDE 2: THE PROBLEM ========== -->
+<div class="slide" id="slide-2">
+  <div class="slide-inner">
+    <h2><span class="num">01</span> The Problem</h2>
+    <p class="slide-subtitle">The ISO C standard leaves hundreds of behaviors deliberately undefined — your code may work today and fail on a different compiler, platform, or optimization level tomorrow</p>
+    <div class="stat-row">
+      <div class="stat" style="border-color:var(--red)">
+        <div class="number c-red">~203</div>
+        <div class="label">Undefined Behaviors</div>
+      </div>
+      <div class="stat" style="border-color:var(--amber)">
+        <div class="number c-amber">~58</div>
+        <div class="label">Unspecified Behaviors</div>
+      </div>
+      <div class="stat" style="border-color:var(--accent)">
+        <div class="number c-blue">~100+</div>
+        <div class="label">Impl-Defined</div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:14px">
+      <div class="card" style="border-color:var(--red)">
+        <h3>🔴 Undefined</h3>
+        <p><strong>Anything can happen.</strong> Compiler may crash, corrupt memory, or silently "optimize away" your code.</p>
+        <div class="c-code"><span class="type">int</span> a = INT_MAX;<br>a = <span class="bad">a + 1</span>; <span class="comment">// UB!</span></div>
+      </div>
+      <div class="card" style="border-color:var(--amber)">
+        <h3>🟡 Unspecified</h3>
+        <p><strong>Multiple valid outcomes.</strong> Results differ between compilers or runs.</p>
+        <div class="c-code"><span class="fn">f</span>(<span class="bad">a++</span>, <span class="bad">a++</span>);<br><span class="comment">// which first?</span></div>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <h3>🔵 Impl-Defined</h3>
+        <p><strong>Compiler chooses.</strong> Works on your machine, breaks on target.</p>
+        <div class="c-code"><span class="type">char</span> c = <span class="bad">200</span>;<br><span class="comment">// signed? unsigned?</span></div>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:clamp(0.7em,1.2vw,.82em);margin-top:10px">Source: ISO/IEC 9899 Annex J (J.1, J.2, J.3)</p>
+  </div>
+</div>
+
+<!-- ========== SLIDE 3: THE CHALLENGE ========== -->
+<div class="slide" id="slide-3">
+  <div class="slide-inner">
+    <h2><span class="num">02</span> The Challenge</h2>
+    <p class="slide-subtitle">These behaviors are documented across 18,000+ pages of standards — no single Parasoft configuration file targets only these issues</p>
+    <div class="grid-2">
+      <div class="card" style="border-color:var(--red)">
+        <h3><span class="c-red">✗</span> Without this workflow</h3>
+        <ul>
+          <li>ISO C Annex J spans hundreds of items — hard to read</li>
+          <li>MISRA C:2023 maps rules differently than CERT C</li>
+          <li>Parasoft has <strong>5,672 rules</strong> — which ones detect Annex J?</li>
+          <li>Default configs produce thousands of findings — noise hides the real portability bugs</li>
+          <li>Manual cross-referencing across standards takes <strong>hours to days</strong></li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--green)">
+        <h3><span class="c-green">✓</span> What we needed</h3>
+        <ul>
+          <li>Read the ISO C standard's Annex J systematically</li>
+          <li>Cross-reference each behavior to Parasoft rules</li>
+          <li>Pull in MISRA C, CERT C, CWE, JSF mappings</li>
+          <li>Generate <strong>one focused .properties file</strong></li>
+          <li>Scan C code → find ONLY behavior violations → fix them</li>
+        </ul>
+      </div>
+    </div>
+    <div class="danger-box" style="text-align:center;margin-top:14px">
+      <strong class="c-amber">Key question:</strong> Out of Parasoft's <strong>5,672 rules</strong>, which ones specifically detect ISO C undefined, unspecified, and implementation-defined behaviors?
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 4: THE WORKFLOW ========== -->
+<div class="slide" id="slide-4">
+  <div class="slide-inner">
+    <h2><span class="num">03</span> The End-to-End Workflow</h2>
+    <p class="slide-subtitle">From 18,000 pages of standards to identified and fixed code violations</p>
+    <div class="flow">
+      <div class="flow-step" style="border-color:var(--cyan)"><div class="step-num c-cyan">📚</div><div class="step-label">Upload standards<br>to CandleKeep</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--accent2)"><div class="step-num c-purple">⚡</div><div class="step-label">Amp AI reads &amp;<br>cross-references</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--amber)"><div class="step-num c-amber">📋</div><div class="step-label">Generate Parasoft<br>.properties file</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--green)"><div class="step-num c-green">🔍</div><div class="step-label">Scan C project<br>find violations</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:var(--green)"><div class="step-num c-green">✅</div><div class="step-label">Fix code<br>deterministic C</div></div>
+    </div>
+    <div class="grid-3" style="margin-top:16px">
+      <div class="card" style="border-color:var(--cyan)">
+        <h3>☁️ CandleKeep Cloud</h3>
+        <ul>
+          <li>ISO C Standard</li>
+          <li>MISRA C:2023 — 326 pg</li>
+          <li>CERT C 2016 — 534 pg</li>
+          <li>Parasoft Rules — 17,182 pg</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--accent2)">
+        <h3>⚡ Amp AI Agent</h3>
+        <ul>
+          <li>CandleKeep skill reads docs</li>
+          <li>Cross-references Annex J</li>
+          <li>Maps rules → behaviors</li>
+          <li>Generates config file</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--green)">
+        <h3>🔧 Parasoft C++test</h3>
+        <ul>
+          <li>Loads <code>candlekeep_rules</code></li>
+          <li>Scans C project code</li>
+          <li>Reports violations only</li>
+          <li>Each finding = fix needed</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 5: AI RESEARCH ========== -->
+<div class="slide" id="slide-5">
+  <div class="slide-inner">
+    <h2><span class="num">04</span> AI-Powered Standards Research</h2>
+    <p class="slide-subtitle">Amp reads 18,000+ pages across 4 standards in parallel, maps each Annex J behavior to specific Parasoft rules</p>
+    <div class="grid-2">
+      <div>
+        <div class="card" style="margin-bottom:12px;border-color:var(--cyan)">
+          <h3>📖 Step 1 — Upload to CandleKeep</h3>
+          <div class="code-block">
+            <span class="cmd">ck</span> items add <span class="str">"ISO_C_Standard.pdf"</span><br>
+            <span class="cmd">ck</span> items add <span class="str">"MISRA_C_2023.pdf"</span><br>
+            <span class="cmd">ck</span> items add <span class="str">"CERT_C_2016.pdf"</span><br>
+            <span class="cmd">ck</span> items add <span class="str">"Parasoft_Rules_Ref.pdf"</span>
+          </div>
+        </div>
+        <div class="card" style="border-color:var(--accent2)">
+          <h3>🤖 Step 2 — Ask Amp</h3>
+          <div class="code-block">
+            <span class="str">"Cross-reference ISO C Annex J<br>
+            (undefined, unspecified, impl-defined)<br>
+            against all Parasoft C++test rules.<br>
+            Generate a .properties config<br>
+            with only matching rules enabled."</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="height:100%;border-color:var(--accent2)">
+          <h3>⚡ What Amp Does</h3>
+          <ul class="feature-list">
+            <li><span class="icon bg-blue c-blue">1</span> Inventories all documents via <code>ck items list</code></li>
+            <li><span class="icon bg-blue c-blue">2</span> Reads ISO C Annex J — identifies all 360+ behaviors</li>
+            <li><span class="icon bg-blue c-blue">3</span> Reads MISRA C Rule 1.3 — maps sub-rules to UB/unspecified</li>
+            <li><span class="icon bg-blue c-blue">4</span> Reads CERT C — finds EXP43, MSC15, MEM04</li>
+            <li><span class="icon bg-blue c-blue">5</span> Reads Parasoft 17,182-page reference — matches PORT, CWE rules</li>
+            <li><span class="icon bg-green c-green">6</span> Generates <code>candlekeep_rules.properties</code> with 68 rules</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 6: THE CONFIG FILE ========== -->
+<div class="slide" id="slide-6">
+  <div class="slide-inner">
+    <h2><span class="num">05</span> The Generated Configuration</h2>
+    <p class="slide-subtitle">From a generic 4,220-line config with all rules → a focused 315-line config targeting only ISO C behaviors</p>
+    <div class="comparison">
+      <div class="comp-box">
+        <div class="val c-red">4,220</div>
+        <div class="desc">lines — generic config<br><strong>5,672 rules — too noisy</strong></div>
+      </div>
+      <div class="arrow-right">→</div>
+      <div class="comp-box" style="border-color:var(--green)">
+        <div class="val c-green">315</div>
+        <div class="desc">lines — candlekeep_rules<br><strong>68 rules — zero noise</strong></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat" style="border-color:var(--red)"><div class="number c-red">16</div><div class="label">Undefined Behavior</div></div>
+      <div class="stat" style="border-color:var(--amber)"><div class="number c-amber">7</div><div class="label">Unspecified</div></div>
+      <div class="stat" style="border-color:var(--accent)"><div class="number c-blue">31</div><div class="label">Impl-Defined</div></div>
+      <div class="stat" style="border-color:var(--green)"><div class="number c-green">14</div><div class="label">MISRA 2025</div></div>
+    </div>
+    <div class="highlight-box">
+      <strong>Standards covered:</strong> MISRA C:2012 Rule 1.3 • MISRA C:2025 Dir 4.1 • CERT C EXP43/MSC15/MEM04 • CWE-475/476/758 • PORT-01–36 • JSF-167
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 7: PARASOFT RULES SCREENSHOT ========== -->
+<div class="slide" id="slide-7">
+  <div class="slide-inner">
+    <h2><span class="num">06</span> Parasoft Rule Configuration</h2>
+    <p class="slide-subtitle">The <code>candlekeep_rules</code> configuration loaded in Parasoft C++test — 43 rules enabled out of 5,672</p>
+    <div class="screenshot-frame">
+      <div class="frame-bar">
+        <div class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+        <span class="frame-title">Parasoft C++test — Test Configurations — candlekeep_rules</span>
+      </div>
+      <img src="rules.png" alt="Parasoft C++test rule configuration showing candlekeep_rules with 43 of 5,672 rules enabled, including MISRA C:2012 Rule 1.3 sub-rules for undefined and unspecified behavior, CERT C EXP43 and MSC15, and JSF-167">
+      <div class="frame-caption">
+        <strong>What you see:</strong> The <code>candlekeep_rules</code> user-defined configuration under Static Analysis.
+        <strong class="c-green">43 rules enabled</strong> out of 5,672 total.
+        Expanded: <strong>MISRA C:2012 Rule 1.3</strong> — <em>"There shall be no occurrence of undefined or critical unspecified behaviour"</em> — with 10 sub-rules covering evaluation order, volatile access, signed right-shift, and more.
+        Also visible: <strong>CERT C</strong> (EXP43, MSC15) and <strong>JSF-167</strong>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 8: SCAN RESULTS SCREENSHOT ========== -->
+<div class="slide" id="slide-8">
+  <div class="slide-inner">
+    <h2><span class="num">07</span> Scan Results — Violations Found</h2>
+    <p class="slide-subtitle">Running <code>candlekeep_rules</code> against the <strong>zlib</strong> open-source library — 622 violations identified</p>
+    <div class="screenshot-frame">
+      <div class="frame-bar">
+        <div class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+        <span class="frame-title">Parasoft C++test — Quality Tasks — zlib [develop]</span>
+      </div>
+      <img src="static.png" alt="Parasoft C++test scan results showing 622 violations in zlib including MISRAC2012-RULE_1_3-o right-shift violations in deflate.c, PORT-04 hex constant errors, and CERT_C-MEM04 library validation issues">
+      <div class="frame-caption">
+        <strong>622 violations</strong> found in zlib — real code, real issues:<br>
+        • <strong class="c-red">MISRAC2012-RULE_1_3-o</strong>: Right-shift of negative signed value in <code>deflate.c</code> line 753 (<code>value >>= put;</code>) — <strong>implementation-defined behavior</strong><br>
+        • <strong class="c-amber">PORT-04</strong>: Hex constant <code>0xffffffff</code> used as error marker — <strong>non-portable</strong><br>
+        • <strong class="c-blue">CERT_C-MEM04</strong>: Library function arguments not validated — <strong>58 occurrences</strong><br>
+        Each finding points to code that behaves differently across compilers/platforms.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 9: REAL EXAMPLE ========== -->
+<div class="slide" id="slide-9">
+  <div class="slide-inner">
+    <h2><span class="num">08</span> Real Example: zlib <code>deflate.c</code></h2>
+    <p class="slide-subtitle">A real violation caught by the scan — implementation-defined behavior in a widely-used library</p>
+    <div class="grid-2">
+      <div>
+        <div class="card" style="border-color:var(--red)">
+          <h3>🔴 The Violation</h3>
+          <p><strong>Rule:</strong> <code>MISRAC2012-RULE_1_3-o</code></p>
+          <p><strong>File:</strong> <code>deflate.c</code>, line 753</p>
+          <p><strong>Issue:</strong> Right-shift of a signed negative value</p>
+          <div class="c-code">
+            <span class="comment">// deflate.c:753</span><br>
+            <span class="bad">value >>= put;</span><br>
+            <span class="comment">// 'value' is signed int</span><br>
+            <span class="comment">// When negative, result is</span><br>
+            <span class="comment">// IMPLEMENTATION-DEFINED</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="border-color:var(--red);margin-bottom:12px">
+          <h3>⚠️ Why It Matters</h3>
+          <p>ISO C §6.5.7: <em>"If E1 has a signed type and a negative value, the resulting value is implementation-defined."</em></p>
+          <p style="margin-top:8px"><strong class="c-red">GCC</strong>: arithmetic shift (sign-extends)<br>
+          <strong class="c-amber">Other compilers</strong>: may logical shift (zero-fills)<br>
+          <strong>→ Different results on different platforms!</strong></p>
+        </div>
+        <div class="card" style="border-color:var(--green)">
+          <h3>✅ The Fix</h3>
+          <div class="c-code">
+            <span class="comment">// Use unsigned type instead:</span><br>
+            <span class="type">unsigned int</span> uval = (<span class="type">unsigned int</span>)value;<br>
+            uval >>= put;<br>
+            <span class="comment">// Now deterministic everywhere</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 10: RULE CATEGORIES ========== -->
+<div class="slide" id="slide-10">
+  <div class="slide-inner">
+    <h2><span class="num">09</span> Complete Rule Coverage</h2>
+    <p class="slide-subtitle">68 rules across three ISO C behavior categories — every Annex J area covered</p>
+    <div class="grid-3">
+      <div class="card" style="border-color:var(--red)">
+        <h3>🔴 Undefined (16 rules)</h3>
+        <ul>
+          <li>Division by zero</li>
+          <li>Uninitialized variables</li>
+          <li>Use-after-free</li>
+          <li>Buffer overflow R/W</li>
+          <li>Signed integer overflow</li>
+          <li>Null pointer deref</li>
+          <li>Invalid bit shift</li>
+          <li>Format string mismatch</li>
+          <li>Overlapping memcpy</li>
+          <li><code>restrict</code> violations</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--amber)">
+        <h3>🟡 Unspecified (7 rules)</h3>
+        <ul>
+          <li>Expression eval order</li>
+          <li>Argument eval order</li>
+          <li>Unsequenced side effects</li>
+          <li>Volatile access ordering</li>
+          <li>Static init order</li>
+          <li>Operand eval order</li>
+          <li>Aggregate init order</li>
+        </ul>
+        <p style="margin-top:8px"><strong class="c-amber">Ensures deterministic execution on any compiler</strong></p>
+      </div>
+      <div class="card" style="border-color:var(--accent)">
+        <h3>🔵 Impl-Defined (31 rules)</h3>
+        <ul>
+          <li><code>char</code> signedness</li>
+          <li>Type size assumptions</li>
+          <li>Endianness</li>
+          <li>Bit-field layout</li>
+          <li>Struct padding</li>
+          <li>Floating-point format</li>
+          <li>Compiler extensions</li>
+          <li>Right-shift of negatives</li>
+          <li>ABI-specific behavior</li>
+          <li><code>#pragma</code> usage</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 11: BEFORE/AFTER ========== -->
+<div class="slide" id="slide-11">
+  <div class="slide-inner">
+    <h2><span class="num">10</span> Before &amp; After</h2>
+    <p class="slide-subtitle">What changes when you scan and fix all violations</p>
+    <div class="grid-2">
+      <div class="card" style="border-color:var(--red)">
+        <h3><span class="c-red">✗</span> Before — Typical C Project</h3>
+        <ul class="feature-list">
+          <li><span class="icon bg-red c-red">💥</span> Signed overflow → compiler removes safety checks</li>
+          <li><span class="icon bg-red c-red">🎲</span> <code>f(a++, a++)</code> → different results per compiler</li>
+          <li><span class="icon bg-red c-red">🔀</span> <code>char c = 200</code> → works on ARM, breaks on x86</li>
+          <li><span class="icon bg-red c-red">🕳️</span> Null deref → crash in production only</li>
+          <li><span class="icon bg-red c-red">📐</span> <code>value >>= put</code> → impl-defined when negative</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:var(--green)">
+        <h3><span class="c-green">✓</span> After — Scanned &amp; Fixed</h3>
+        <ul class="feature-list">
+          <li><span class="icon bg-green c-green">✅</span> All undefined behaviors detected &amp; eliminated</li>
+          <li><span class="icon bg-green c-green">✅</span> Evaluation order is deterministic</li>
+          <li><span class="icon bg-green c-green">✅</span> No platform/compiler assumptions</li>
+          <li><span class="icon bg-green c-green">✅</span> Portable across ARM, x86, RISC-V, etc.</li>
+          <li><span class="icon bg-green c-green">✅</span> More stable, predictable application</li>
+        </ul>
+      </div>
+    </div>
+    <div class="highlight-box" style="margin-top:14px">
+      <strong>Every finding = a line of code that could behave differently on another compiler or platform.</strong><br>
+      Fix them all → <strong class="c-green">deterministic, portable, more stable C application</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ========== SLIDE 12: SUMMARY ========== -->
+<div class="slide" id="slide-12">
+  <div class="slide-inner">
+    <h2><span class="num">11</span> Summary</h2>
+    <p class="slide-subtitle">End-to-end: from ISO C standard → identified violations → better, more stable C code</p>
+    <div class="table-wrap">
+    <table>
+      <tr><th>#</th><th>Step</th><th>Tool</th><th>Result</th></tr>
+      <tr><td><strong class="c-blue">1</strong></td><td>Upload ISO C, MISRA, CERT, Parasoft docs</td><td>CandleKeep</td><td>18,042 pages searchable</td></tr>
+      <tr><td><strong class="c-blue">2</strong></td><td>AI cross-references Annex J → Parasoft rules</td><td>Amp + CandleKeep</td><td>68 rules identified</td></tr>
+      <tr><td><strong class="c-blue">3</strong></td><td>Generate <code>candlekeep_rules.properties</code></td><td>Amp</td><td>315-line focused config</td></tr>
+      <tr><td><strong class="c-blue">4</strong></td><td>Load config into Parasoft C++test</td><td>Parasoft</td><td>43 of 5,672 rules enabled</td></tr>
+      <tr><td><strong class="c-blue">5</strong></td><td>Scan C project (e.g., zlib)</td><td>Parasoft</td><td>622 violations found</td></tr>
+      <tr><td><strong class="c-green">6</strong></td><td>Fix all violations</td><td>Developer</td><td><strong class="c-green">Deterministic, stable C code</strong></td></tr>
+    </table>
+    </div>
+    <div class="highlight-box" style="margin-top:16px;font-size:clamp(0.85em,1.6vw,1.05em)">
+      🎯 <strong>Bottom Line</strong><br><br>
+      Identify from the large ISO C standard document all areas of <strong class="c-red">undefined</strong>, <strong class="c-amber">unspecified</strong>, and <strong class="c-blue">implementation-defined</strong> behavior →<br>
+      cross-reference to <strong>Parasoft static analysis rules</strong> →<br>
+      scan your C project → identify problematic code → fix it →<br>
+      get a <strong class="c-green">better, more stable C application</strong>.
+    </div>
+  </div>
+</div>
+
+<!-- ========== BOTTOM BAR ========== -->
+<div class="bottom-bar">
+  <span class="page-info" id="page-info">1 / 12</span>
+  <div style="font-size:clamp(0.55em,1vw,.68em);color:var(--muted);text-align:center;flex:1">CandleKeep × Amp × Parasoft</div>
+  <div class="nav-btns">
+    <button class="nav-btn" onclick="prev()">←</button>
+    <button class="nav-btn" onclick="next()">→</button>
+  </div>
+</div>
+
+<script>
+  var slides=document.querySelectorAll('.slide'),total=slides.length,current=0,touchStartX=0;
+  function show(n){slides[current].classList.remove('active');current=(n%total+total)%total;slides[current].classList.add('active');slides[current].scrollTop=0;document.getElementById('page-info').textContent=(current+1)+' / '+total;document.getElementById('progress').style.width=((current+1)/total*100)+'%'}
+  function next(){show(current+1)}function prev(){show(current-1)}
+  document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();next()}if(e.key==='ArrowLeft'){e.preventDefault();prev()}if(e.key==='Home'){e.preventDefault();show(0)}if(e.key==='End'){e.preventDefault();show(total-1)}});
+  document.addEventListener('touchstart',function(e){touchStartX=e.changedTouches[0].screenX},{passive:true});
+  document.addEventListener('touchend',function(e){var d=touchStartX-e.changedTouches[0].screenX;if(Math.abs(d)>50){d>0?next():prev()}},{passive:true});
+  show(0);
+</script>
+
+</body>
+</html>
